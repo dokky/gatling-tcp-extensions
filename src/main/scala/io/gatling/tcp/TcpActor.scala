@@ -33,7 +33,7 @@ class TcpActor(dataWriterClient : DataWriterClient) extends BaseActor {
   def connectedState(channel: Channel, tx: TcpTx): Receive = {
       def succeedPendingCheck(checkResult: CheckResult) = {
         tx.check match {
-          case Some(check) =>
+          case Some(check:TcpCheck) =>
             // expected count met, let's stop the check
             logRequest(tx.session, tx.requestName, OK, tx.start, nowMillis, None)
             val newUpdates = if (checkResult.hasUpdate) {
@@ -54,19 +54,16 @@ class TcpActor(dataWriterClient : DataWriterClient) extends BaseActor {
       case Send(requestName, message, next, session, check) =>
         logger.debug(s"Sending message check on channel '$channel': $message")
         val now = nowMillis
-        message match {
-          case TextTcpMessage(text) => channel.write(text)
-          case _                    => logger.warn("Only text messages supported")
-        }
+        channel.write(message.toChannelBuffer)
         check match {
-          case Some(c) =>
+          case Some(c:TcpCheck) =>
             // do this immediately instead of self sending a Listen message so that other messages don't get a chance to be handled before
             setCheck(tx, channel, requestName, c, next, session)
           case None => next ! session
         }
 
         logRequest(session, requestName, OK, now, now)
-      case OnTextMessage(message, time) =>
+      case OnMessage(message, time) =>
         logger.debug(s"Received text message on  :$message")
 
         implicit val cache = scala.collection.mutable.Map.empty[Any, Any]
@@ -86,7 +83,7 @@ class TcpActor(dataWriterClient : DataWriterClient) extends BaseActor {
         }
       case CheckTimeout(check) =>
         tx.check match {
-          case Some(`check`) =>
+          case Some(c:TcpCheck) =>
 
             val newTx = failPendingCheck(tx, "Check failed: Timeout")
             context.become(connectedState(channel, newTx))
@@ -169,6 +166,7 @@ class TcpActor(dataWriterClient : DataWriterClient) extends BaseActor {
     context.become(connectedState(channel, newTx))
 
   }
+
   def failPendingCheck(tx: TcpTx, message: String): TcpTx = {
     tx.check match {
       case Some(c) =>

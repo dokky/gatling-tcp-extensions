@@ -21,8 +21,8 @@ import scala.concurrent.duration.FiniteDuration
 
 object TcpCheckBuilders {
 
-  def extender(timeout: FiniteDuration): Extender[TcpCheck, String] =
+  def extender(timeout: FiniteDuration): Extender[TcpCheck, Array[Byte]] =
     wrapped => new TcpCheck(wrapped, timeout)
 
-  val PassThroughMessagePreparer: Preparer[String, String] = (r: String) => r.success
+  val PassThroughMessagePreparer: Preparer[Array[Byte], CharSequence] = (r: Array[Byte]) => r.toString.success
 }

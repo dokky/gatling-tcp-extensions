@@ -79,8 +79,8 @@ with MockFactory {
       val channel = mock[Channel]
       connect(tcpActor, channel)
 
-      val text: String = "text"
-      val tcpMessage = TextTcpMessage(text)
+      val text: Array[Byte] = "text".getBytes
+      val tcpMessage = TcpMessage(text)
 
       (channel.write(_: Any)).expects(text).once()
       val txNext = TestProbe()
@@ -92,32 +92,15 @@ with MockFactory {
       expectedSession.status shouldEqual OK
     }
 
-    "do not send message to channel if not text message" in {
-      val tcpActor = system.actorOf(TcpActor.props(dataWriterClient))
-      val channel = mock[Channel]
-      connect(tcpActor, channel)
-
-      val text: String = "text"
-      val tcpMessage = ByteTcpMessage(Array(0.toByte,1.toByte,2.toByte))
-
-      (channel.write(_: Any)).expects(text).never()
-      val txNext = TestProbe()
-
-      val session: Session = Session("Scenario", "User")
-      tcpActor ! Send("request", tcpMessage, txNext.ref,session,None)
-
-      val expectedSession = txNext.expectMsg(session)
-      expectedSession.status shouldEqual OK
-    }
     "send message to channel and proceed next transaction with check" in {
       val tcpActor = system.actorOf(TcpActor.props(dataWriterClient))
       val channel = mock[Channel]
-      val check = mock[Check[String]]
+      val check = mock[Check[Array[Byte]]]
       val tcpCheck = TcpCheck(check, 200 millis, 0l)
       connect(tcpActor, channel)
 
-      val text: String = "text"
-      val tcpMessage = TextTcpMessage(text)
+      val text: Array[Byte] = "text".getBytes
+      val tcpMessage = TcpMessage(text)
 
       (channel.write(_: Any)).expects(text).once()
       val txNext = TestProbe()

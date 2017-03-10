@@ -21,13 +21,13 @@ import io.gatling.core.check.extractor.regex._
 
 object TcpRegexCheckBuilder {
 
-  def regex(expression: Expression[String], extender: Extender[TcpCheck, String]) =
+  def regex(expression: Expression[String], extender: Extender[TcpCheck, Array[Byte]]) =
     new TcpRegexCheckBuilder[String](expression, extender)
 }
 
 class TcpRegexCheckBuilder[X](private[tcp] val expression: Expression[String],
-                              private[tcp] val extender: Extender[TcpCheck, String])(implicit groupExtractor: GroupExtractor[X])
-    extends DefaultMultipleFindCheckBuilder[TcpCheck, String, CharSequence, X](
+                              private[tcp] val extender: Extender[TcpCheck, Array[Byte]])(implicit groupExtractor: GroupExtractor[X])
+    extends DefaultMultipleFindCheckBuilder[TcpCheck, Array[Byte], CharSequence, X](
       extender,
       TcpCheckBuilders.PassThroughMessagePreparer) {
 

@@ -13,7 +13,7 @@ class TcpCompile extends Simulation {
     .pause(1)
     .repeat(2, "i") {
        exec(tcp("Say Hello Tcp")
-      .sendText( """{"qualifier":"someQualifier","data":{"properties":null}}""")
+      .send( """{"qualifier":"someQualifier","data":{"properties":null}}""")
        .check(tcpCheck.within(5 seconds).regex( """"context":"(.+?)"""").saveAs("context"))
        ).pause(1)
   }

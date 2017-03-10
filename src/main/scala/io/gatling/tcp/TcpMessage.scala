@@ -1,8 +1,9 @@
 package io.gatling.tcp
 
 import io.gatling.core.session.Expression
+import org.jboss.netty.buffer.{ChannelBuffer, ChannelBuffers}
 
-sealed trait TcpMessage
 
-case class TextTcpMessage(message: String) extends TcpMessage
-case class ByteTcpMessage(message: Array[Byte]) extends TcpMessage
+case class TcpMessage(message: Array[Byte]) {
+  def toChannelBuffer:ChannelBuffer = ChannelBuffers.wrappedBuffer(message)
+}
