@@ -12,7 +12,7 @@ class TcpCloseAction(val requestName: Expression[String], val next: ActorRef) ex
 
     for {
       resolvedRequestName <- requestName(session)
-      tcpActor <- session("tcpActor").validate[ActorRef].mapError(m => s"Couldn't fetch open websocket: $m")
+      tcpActor <- session("tcpActor").validate[ActorRef].mapError(m => s"Couldn't fetch open socket: $m")
     } yield tcpActor ! Disconnect(resolvedRequestName, next, session)
   }
 

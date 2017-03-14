@@ -33,7 +33,7 @@ with MockFactory {
     val txNext = TestProbe()
     val tx = TcpTx(session = Session("Scenario", "User"),
       next = txNext.ref, start = 0l, protocol = protocol,
-      message = null, requestName = "Connect")
+      requestName = "Connect")
     actor ! OnConnect(tx, channel, 1l)
   }
   "Tcp actor in initial state" must {
@@ -43,7 +43,7 @@ with MockFactory {
       val txNext = TestProbe()
       val tx = TcpTx(session = Session("Scenario", "User"),
         next = txNext.ref, start = 0l, protocol = protocol,
-        message = null, requestName = "Connect")
+        requestName = "Connect")
       val channel = mock[Channel]
       tcpActor ! OnConnect(tx, channel, 1l)
 
@@ -56,7 +56,7 @@ with MockFactory {
       val txNext = TestProbe()
       val tx = TcpTx(session = Session("Scenario", "User"),
         next = txNext.ref, start = 0l, protocol = protocol,
-        message = null, requestName = "Connect")
+        requestName = "Connect")
       tcpActor ! OnConnectFailed(tx, 0l)
 
       val expectedSession = txNext.expectMsgClass(classOf[Session])

@@ -49,7 +49,6 @@ case class TcpTx(session: Session,
                  next: ActorRef,
                  start: Long,
                  protocol: TcpProtocol,
-                 message: TcpMessage,
                  requestName: String,
                  check: Option[TcpCheck] = None,
                  updates: List[Session => Session] = Nil) {
@@ -68,7 +67,7 @@ case class DelimiterBasedTcpFramer(delimiters : Array[Byte], stripDelimiter : Bo
 }
 case object ProtobufVarint32TcpFramer extends TcpFramer
 
-class TcpEngine {
+class TcpEngine extends StrictLogging {
   val numWorkers = Runtime.getRuntime.availableProcessors()
   val nettyTimer = new HashedWheelTimer(10, TimeUnit.MILLISECONDS)
   val nioThreadPool = Executors.newCachedThreadPool
@@ -144,7 +143,7 @@ class TcpEngine {
 
     client.onComplete {
       case scala.util.Success(session) => actor ! OnConnect(tx, session("channel").asOption[Channel].get, System.currentTimeMillis())
-      case scala.util.Failure(th) => actor ! OnConnectFailed(tx,System.currentTimeMillis())
+      case scala.util.Failure(th) => actor ! OnConnectFailed(tx,System.currentTimeMillis(), "connect failed")
     }
   }
 }

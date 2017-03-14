@@ -8,7 +8,7 @@ import io.gatling.core.result.writer.DataWriterClient
 import io.gatling.core.session.Session
 import io.gatling.core.util.TimeHelper._
 import io.gatling.tcp.check.TcpCheck
-import org.jboss.netty.channel.Channel
+import org.jboss.netty.channel.{Channel, ChannelFuture, ChannelFutureListener}
 
 class TcpActor(dataWriterClient : DataWriterClient) extends BaseActor {
 
@@ -21,8 +21,8 @@ class TcpActor(dataWriterClient : DataWriterClient) extends BaseActor {
       context.become(connectedState(channel, newTx))
       tx.next ! newSession
       logRequest(tx.session,  tx.requestName, OK, nowMillis, nowMillis)
-    case OnConnectFailed(tx, time) =>
-      logRequest(tx.session, tx.requestName, KO, tx.start, nowMillis, Some("connection failed"))
+    case OnConnectFailed(tx, time, error) =>
+      logRequest(tx.session, tx.requestName, KO, tx.start, nowMillis, Some(error))
       val newTx = tx.copy(updates = Session.MarkAsFailedUpdate :: tx.updates, check = None)
       context.become(disconnectedState(tx))
       newTx.next ! newTx.applyUpdates(newTx.session).session
@@ -54,17 +54,22 @@ class TcpActor(dataWriterClient : DataWriterClient) extends BaseActor {
       case Send(requestName, message, next, session, check) =>
         logger.debug(s"Sending message check on channel '$channel': $message")
         val now = nowMillis
-        channel.write(message.toChannelBuffer)
-        check match {
-          case Some(c:TcpCheck) =>
-            // do this immediately instead of self sending a Listen message so that other messages don't get a chance to be handled before
-            setCheck(tx, channel, requestName, c, next, session)
-          case None => next ! session
-        }
+        val future = channel.write(message.toChannelBuffer)
+        future.addListener(new ChannelFutureListener() {
+          def operationComplete( future: ChannelFuture) {
+            check match {
+              case Some(c:TcpCheck) =>
+                // do this immediately instead of self sending a Listen message so that other messages don't get a chance to be handled before
+                setCheck(tx, channel, requestName, c, next, session)
+              case None => next ! session
+            }
 
-        logRequest(session, requestName, OK, now, now)
+            logRequest(session, requestName, OK, now, now)
+          }
+        })
+
       case OnMessage(message, time) =>
-        logger.debug(s"Received text message on  :$message")
+        logger.debug(s"Received new message on  :$message")
 
         implicit val cache = scala.collection.mutable.Map.empty[Any, Any]
 
@@ -97,7 +102,9 @@ class TcpActor(dataWriterClient : DataWriterClient) extends BaseActor {
       case Disconnect(requestName, next, session) => {
 
         logger.debug(s"Disconnecting channel for session: $session")
-        channel.close()
+        if(channel.isOpen) {
+          channel.close()
+        }
         val newTx = failPendingCheck(tx, "Check didn't succeed by the time the TCP socket was asked to be closed")
           .applyUpdates(session)
           .copy(requestName = requestName, start = nowMillis, next = next)
